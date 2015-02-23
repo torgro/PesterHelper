@@ -4,4 +4,4 @@
         $item.FunctionName = $testFile.Name.Replace(".Testkeyword","")
         $item.FullName = (Resolve-Path -Path $testFile.FullName).Path
         [void]$allTests.Add($item)
-        $i += 1    }    $script:TestFiles = $allTests    if($id)    {        $allTests | where id -eq $id    }    else    {            $allTests | where TestFileName -like "$Name"    }}
+        $i += 1    }    if($id)    {        $allTests | where id -eq $id    }    else    {            $allTests | where TestFileName -like "$Name"    }}

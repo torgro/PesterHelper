@@ -21,14 +21,14 @@ Write-Verbose -Message "$F - Starting build, getting files"
 if(Get-Module -Name $ModuleName)
 {
     Write-Verbose "$F -  Removing $ModuleName module"
-    Remove-Module $ModuleName -Verbose:$false
+    Remove-Module $ModuleName -Verbose:$false -ErrorAction SilentlyContinue
 }
     
 $fileList = Get-ChildItem -Filter ".\functions\*.ps1" | where name -NotLike "*Tests*"
 
 $ScriptVariables = Get-Content -Path "$PSScriptRoot\ScriptVariables.ps1" -ErrorAction SilentlyContinue
 
-$alias = Get-Content -Path "$PSScriptRoot\alias.ps1" -ErrorAction SilentlyContinue
+$alias = Get-Content -Path "$PSScriptRoot\alias.ps1" -Raw -ErrorAction SilentlyContinue
 
 $ModuleName = (Get-ChildItem -Path "$PSScriptRoot\$ModuleFileName" -ErrorAction SilentlyContinue).BaseName
 Write-Verbose -Message "$f -  Modulename is $ModuleName"
@@ -68,7 +68,7 @@ foreach($file in $fileList)
 if($ScriptVariables)
 {
     Write-Verbose -Message "$f -  Inserting Scriptlevel variables"
-    $ScriptVariables = "$ScriptVariables`n`n"
+    $ScriptVariables = $ScriptVariables | foreach {"$_`n"}
     $ModuleFile = "$ScriptVariables$ModuleFile"
 }
 else
@@ -79,7 +79,7 @@ else
 if($alias)
 {
     Write-Verbose -Message "$f -  Inserting alias"
-    $ModuleFile = "$ModuleFile$alias"
+    $ModuleFile += $alias | foreach{"$_`n"}
 }
 else
 {
@@ -192,8 +192,35 @@ if((Test-Path -Path "$PSScriptRoot\$ManifestName" -ErrorAction SilentlyContinue)
     Remove-Item -Path "$PSScriptRoot\$ManifestName"
 }
 
+$AliasDef = $()
+
+Write-Verbose -Message "$f -  Exporting aliases"
+if($alias)
+{
+    $sb = [scriptblock]::Create($alias)
+    $ast = $sb.Ast
+    $aliasAst = $ast.FindAll({$args[0] -is [System.Management.Automation.Language.CommandAst]},$true)
+    Write-Verbose "$f -  Ast count $($aliasAst.Count)"
+    $AliasDef = $()
+    foreach($command in $aliasAst)
+    {
+        Write-Verbose -Message "$f -  $($command.gettype())"
+        if($command.CommandElements[0].value -eq "new-alias")
+        {
+            if($command.CommandElements[1].ParameterName -eq "Name")
+            {
+                $AliasDef += $command.CommandElements[2].value
+            }
+        }
+        else
+        {
+            Write-Warning "Alias definition not found"
+        }
+    }
+}
+
 Write-Verbose -Message "$f -  Creating manifestfile"
-New-ModuleManifest -Path "$PSScriptRoot\$ManifestName" -Author "Tore Grøneng @toregroneng tore@firstpoint.no" -CompanyName "Firstpoint AS" -ModuleVersion $ver.ToString() -FunctionsToExport $ExportedFunctions -RootModule $ModuleFileName
+New-ModuleManifest -Path "$PSScriptRoot\$ManifestName" -Author "Tore Grøneng @toregroneng tore@firstpoint.no" -CompanyName "Firstpoint AS" -ModuleVersion $ver.ToString() -FunctionsToExport $ExportedFunctions -RootModule $ModuleFileName -AliasesToExport $AliasDef
 
 Write-Verbose -Message "$f -  Reading back content to contert to UTF8 (content management tracking)"
 Set-Content -Path "$PSScriptRoot\$ManifestName" -Value (Get-Content -Path $ManifestName -Raw) -Encoding UTF8
