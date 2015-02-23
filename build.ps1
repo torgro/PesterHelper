@@ -1,7 +1,7 @@
 ﻿#build module script
 [cmdletbinding()]
 Param(
-    [string]$ModuleFileName = "PesterHelper.psm1"
+    [string]$ModuleName = "PesterHelper"
     ,
     [switch]$Major
     ,
@@ -11,7 +11,10 @@ Param(
 )
 cd C:\Users\Tore\Dropbox\SourceTreeRepros\PesterHelper -ErrorAction SilentlyContinue
 $F = $MyInvocation.InvocationName
-$ModuleName = (Get-ChildItem -Path "$PSScriptRoot\$ModuleFileName" -ErrorAction SilentlyContinue).BaseName
+
+$ModuleFileName = "$ModuleName.psm1"
+
+Write-Verbose -Message "$f -  Modulename is $ModuleName at $PSScriptRoot"
 
 Write-Verbose -Message "$F - Starting build, getting files"
 
@@ -21,7 +24,7 @@ if(Get-Module -Name $ModuleName)
     Remove-Module $ModuleName -Verbose:$false
 }
     
-$fileList = Get-ChildItem -Filter "$PSScriptRoot\functions\*.ps1" | where name -NotLike "*Tests*"
+$fileList = Get-ChildItem -Filter ".\functions\*.ps1" | where name -NotLike "*Tests*"
 
 $ScriptVariables = Get-Content -Path "$PSScriptRoot\ScriptVariabless.ps1" -ErrorAction SilentlyContinue
 
