@@ -12,10 +12,10 @@
 RootModule = 'PesterHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.3.0'
+ModuleVersion = '1.0.7.0'
 
 # ID used to uniquely identify this module
-GUID = '36a57109-429f-4722-b038-f486b1a1565b'
+GUID = '79bb81b7-0577-4345-bb25-7347b715cde4'
 
 # Author of this module
 Author = 'Tore Grøneng @toregroneng tore@firstpoint.no'

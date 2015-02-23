@@ -26,7 +26,7 @@ if(Get-Module -Name $ModuleName)
     
 $fileList = Get-ChildItem -Filter ".\functions\*.ps1" | where name -NotLike "*Tests*"
 
-$ScriptVariables = Get-Content -Path "$PSScriptRoot\ScriptVariabless.ps1" -ErrorAction SilentlyContinue
+$ScriptVariables = Get-Content -Path "$PSScriptRoot\ScriptVariables.ps1" -ErrorAction SilentlyContinue
 
 $alias = Get-Content -Path "$PSScriptRoot\alias.ps1" -ErrorAction SilentlyContinue
 
@@ -57,18 +57,33 @@ foreach($function in $ModuleLevelFunctions)
 }
 
 Write-Verbose -Message "$f -  Constructing content of module file"
-[string]$ModuleFile = $fileList | foreach {$file = Get-Content -Path $_.FullName -raw ; $file += "`n`n";$file}
+[string]$ModuleFile = ""
+foreach($file in $fileList)
+{
+    $filecontent = Get-Content -Path $file.FullName -raw
+    $filecontent = "$filecontent`n`n"
+    $ModuleFile += $filecontent
+}
 
 if($ScriptVariables)
 {
     Write-Verbose -Message "$f -  Inserting Scriptlevel variables"
-    $ModuleFile = "$ScriptVariables`n`n$ModuleFile"
+    $ScriptVariables = "$ScriptVariables`n`n"
+    $ModuleFile = "$ScriptVariables$ModuleFile"
+}
+else
+{
+    Write-Warning -Message "No scriptlevel variables file found"
 }
 
 if($alias)
 {
     Write-Verbose -Message "$f -  Inserting alias"
-    $ModuleFile = "$ModuleFile`n`n$alias"
+    $ModuleFile = "$ModuleFile$alias"
+}
+else
+{
+    Write-Warning -Message "No alias file found"
 }
 
 [System.Version]$ver = $null
@@ -195,7 +210,7 @@ if($Answer -eq "y" -or $Answer -eq "yes" -or $LoadModule)
     Write-Verbose -Message "$f -  Loading module"
     if(Test-Path -Path "$PSScriptRoot\$ManifestName")
     {
-        Import-Module "$PSScriptRoot\$ManifestName"
+        Import-Module "$PSScriptRoot\$ManifestName" -Verbose:$false
     }
     else
     {
