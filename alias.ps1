@@ -1,0 +1,1 @@
+﻿New-Alias -Name Test -Value Invoke-test -Scope Script

@@ -1,0 +1,1 @@
+﻿function Invoke-Test{Param(    [int]$id)    if(-not (Get-Module -Name pester))    {        Import-Module Pester    }        $test = Get-TestList -Id $id    if($test)    {        Invoke-Pester -Script $test.fullname    }    else    {        Write-warning -Message "Test with id $id was not found"    }}
