@@ -21,6 +21,6 @@ function Invoke-Test{Param(    [int]$id)    if(-not (Get-Module -Name peste
 function Show-Test
 {[CmdletBinding()]Param(    [string]$Testkeyword = "Tests"    ,    [switch]$Grid)    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse    if($Grid -and (Get-Command -Name Out-GridView))    {        $Selected = $tests | Sort-Object -Property LastWriteTime -Descending | Out-GridView -Title "Tests available" -PassThru        $invoke = $null        if($Selected)        {            $invoke = Read-Host -Prompt "Invoke selected test(s)? Y/(N)"            if(-not (Get-Module -Name pester))            {                Import-Module Pester            }            foreach($test in $Selected)            {                Invoke-Pester -Script $test.fullname            }        }          }    else    {        $tests    }}
 
-New-Alias -Name Test -Value Invoke-test -Scope Script
-New-Alias -Name Edit -Value Edit-Test -Scope Script
-
+New-Alias -Name Test -Value Invoke-test
+New-Alias -Name Edit -Value Edit-Test
+Export-ModuleMember -Function * -Alias *

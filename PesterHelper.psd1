@@ -12,10 +12,10 @@
 RootModule = 'PesterHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.11.0'
+ModuleVersion = '1.0.18.0'
 
 # ID used to uniquely identify this module
-GUID = '47c14354-fc34-4c5d-983b-65a58aab371d'
+GUID = '7a8dfdf3-be38-4cf1-ade1-6115bcfa0053'
 
 # Author of this module
 Author = 'Tore Grøneng @toregroneng tore@firstpoint.no'
@@ -75,7 +75,7 @@ CmdletsToExport = '*'
 VariablesToExport = '*'
 
 # Aliases to export from this module
-AliasesToExport = 'TestEdit'
+AliasesToExport = '*'
 
 # List of all modules packaged with this module
 # ModuleList = @()

@@ -80,6 +80,7 @@ if($alias)
 {
     Write-Verbose -Message "$f -  Inserting alias"
     $ModuleFile += $alias | foreach{"$_`n"}
+    $ModuleFile += "Export-ModuleMember -Function * -Alias *"
 }
 else
 {
@@ -192,7 +193,7 @@ if((Test-Path -Path "$PSScriptRoot\$ManifestName" -ErrorAction SilentlyContinue)
     Remove-Item -Path "$PSScriptRoot\$ManifestName"
 }
 
-$AliasDef = $()
+$AliasArray = New-Object System.Collections.ArrayList
 
 Write-Verbose -Message "$f -  Exporting aliases"
 if($alias)
@@ -209,7 +210,7 @@ if($alias)
         {
             if($command.CommandElements[1].ParameterName -eq "Name")
             {
-                $AliasDef += $command.CommandElements[2].value
+                [void]$AliasArray.Add($command.CommandElements[2].value)
             }
         }
         else
@@ -220,7 +221,7 @@ if($alias)
 }
 
 Write-Verbose -Message "$f -  Creating manifestfile"
-New-ModuleManifest -Path "$PSScriptRoot\$ManifestName" -Author "Tore Grøneng @toregroneng tore@firstpoint.no" -CompanyName "Firstpoint AS" -ModuleVersion $ver.ToString() -FunctionsToExport $ExportedFunctions -RootModule $ModuleFileName -AliasesToExport $AliasDef
+New-ModuleManifest -Path "$PSScriptRoot\$ManifestName" -Author "Tore Grøneng @toregroneng tore@firstpoint.no" -CompanyName "Firstpoint AS" -ModuleVersion $ver.ToString() -FunctionsToExport $ExportedFunctions -RootModule $ModuleFileName
 
 Write-Verbose -Message "$f -  Reading back content to contert to UTF8 (content management tracking)"
 Set-Content -Path "$PSScriptRoot\$ManifestName" -Value (Get-Content -Path $ManifestName -Raw) -Encoding UTF8
