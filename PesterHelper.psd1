@@ -12,10 +12,10 @@
 RootModule = 'PesterHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.26.0'
+ModuleVersion = '1.0.31.0'
 
 # ID used to uniquely identify this module
-GUID = '7c95a5e6-836c-4062-8269-b26e487fe9ab'
+GUID = 'db4105bd-c5d5-4797-a59b-3ab3db9f69f5'
 
 # Author of this module
 Author = 'Tore Grøneng @toregroneng tore@firstpoint.no'
@@ -66,7 +66,8 @@ Copyright = '(c) 2015 Tore Grøneng @toregroneng tore@firstpoint.no. All rights 
 # NestedModules = @()
 
 # Functions to export from this module
-FunctionsToExport = 'Edit-Test', 'Get-TestList', 'Invoke-Test', 'Show-Test'
+FunctionsToExport = 'Edit-Test', 'Get-TestList', 'Invoke-Test', 'Show-Test', 
+               'Update-ScriptLine'
 
 # Cmdlets to export from this module
 CmdletsToExport = '*'
