@@ -33,8 +33,9 @@ PROCESS
 
         $content = Get-Content -Path $file.FullName -ReadCount 0 -Encoding UTF8 -Raw
         $NewContent = $content.Replace($SearchFor,$ReplaceWith)
+        $escapedSearchFor = [regex]::Escape($SearchFor)
 
-        $SearchForMatch = $content | Select-String -Pattern "$SearchFor" -AllMatches
+        $SearchForMatch = $content | Select-String -Pattern "$escapedSearchFor" -AllMatches
         $ReplaceCount = $SearchForMatch.Matches.Count
         Write-Verbose -Message "$f -  '$SearchFor' was replaced with '$ReplaceWith' $ReplaceCount time(s)"
 
