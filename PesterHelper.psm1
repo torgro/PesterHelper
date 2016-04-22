@@ -1,6 +1,4 @@
-﻿$script:TestFiles
- $script:TestResults = New-Object System.Collections.ArrayList
-function Edit-Test
+﻿function Edit-Test
 {
 [cmdletbinding()]
 Param(
@@ -8,7 +6,52 @@ Param(
     ,
     [switch]$Function
 )
-    if(-not (Get-Module -Name pester))    {        Import-Module Pester    }        $GetTests = Get-TestList -Id $id    if($Function)    {        if(Get-Command -Name psedit)        {                        foreach($GetTest in $GetTests)            {                Write-Verbose -Message "path is $($GetTest.FullName.replace($GetTest.TestFileName,$GetTest.FunctionName))"                psedit ($GetTest.FullName.replace($GetTest.TestFileName,$GetTest.FunctionName))            }        }        else        {            Write-Error -Exception "not implemented" -Category NotImplemented            $GetTests        }    }    if($GetTests)    {              if(Get-Command -Name psedit)        {                        foreach($GetTest in $GetTests)            {                psedit $GetTest.FullName            }        }        else        {            Write-Warning "Use Powershell ISE for a more powerfull edit experience"            foreach($GetTest in $GetTests)            {                notepad.exe $GetTest.fullname            }                    }    }    else    {        Write-warning -Message "Test with id $id was not found"    }
+    if(-not (Get-Module -Name pester))
+    {
+        Import-Module Pester
+    }
+    
+    $GetTests = Get-TestList -Id $id
+
+    if($Function)
+    {
+        if(Get-Command -Name psedit)
+        {            
+            foreach($GetTest in $GetTests)
+            {
+                Write-Verbose -Message "path is $($GetTest.FullName.replace($GetTest.TestFileName,$GetTest.FunctionName))"
+                psedit ($GetTest.FullName.replace($GetTest.TestFileName,$GetTest.FunctionName))
+            }
+        }
+        else
+        {
+            Write-Error -Exception "not implemented" -Category NotImplemented
+            $GetTests
+        }
+    }
+
+    if($GetTests)
+    {      
+        if(Get-Command -Name psedit)
+        {            
+            foreach($GetTest in $GetTests)
+            {
+                psedit $GetTest.FullName
+            }
+        }
+        else
+        {
+            Write-Warning "Use Powershell ISE for a more powerfull edit experience"
+            foreach($GetTest in $GetTests)
+            {
+                notepad.exe $GetTest.fullname
+            } 
+        }
+    }
+    else
+    {
+        Write-warning -Message "Test with id $id was not found"
+    }
 }
 
 function Get-TestList{[CmdletBinding()]Param(    [string]$Testkeyword = "Tests"    ,    [string]$Name    ,    [int[]]$Id)    $allTests = New-Object System.Collections.ArrayList    [int]$i = 0    foreach($testFile in (Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse))    {        $item = "" | Select ID, TestFileName, FunctionName, FullName
@@ -24,11 +67,11 @@ function Get-TestResult{[CmdletBinding()]Param(    [int[]]$Id)    $f = $M
 function Invoke-Test{[cmdletbinding()]Param(    [int[]]$id)    $f = $MyInvocation.InvocationName    Write-Verbose -Message "$f - START"        if(-not (Get-Module -Name pester))    {        Import-Module Pester    }    if($id.Count -eq 0)    {        Write-Verbose -Message "$f -  Invoking pester for all"        Invoke-Pester        break    }        $Alltests = Get-TestList -Id $id    if($Alltests)    {                Write-Verbose -Message "$f -  Invoking pester for selection ($($id[0])..$($id[-1]))"        Foreach($test in $Alltests)        {            $testItem = Invoke-Pester -Script $test.fullname -PassThru            $TestObj = "" | Select-Object ID, TotalCount, PassedCount, FailedCount, SkippedCount, Time, Describe            $TestObj.id = $test.id            $TestObj.TotalCount = $testItem.TotalCount            $TestObj.PassedCount = $testItem.PassedCount            $TestObj.FailedCount = $testItem.FailedCount            $TestObj.SkippedCount = $testItem.SkippedCount            $TestObj.Time = $testItem.Time            $TestObj.Describe = $testItem.TestResult[0].Describe            Write-Verbose -Message "$f -  Adding test resulsts to array with id $($test.id)"            [void]$script:TestResults.add($TestObj)        }    }    else    {        Write-warning -Message "Test with id $id was not found"    }}
 
 function Show-Test
-{[CmdletBinding()]Param(    [string]$Testkeyword = "Tests"    ,    [switch]$Grid)    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse    if($Grid -and (Get-Command -Name Out-GridView))    {        $Selected = $tests | Sort-Object -Property LastWriteTime -Descending | Out-GridView -Title "Tests available" -PassThru        $invoke = $null        if($Selected)        {            $invoke = Read-Host -Prompt "Invoke selected test(s)? Y/(N)"            if(-not (Get-Module -Name pester))            {                Import-Module Pester            }            foreach($test in $Selected)            {                Invoke-Pester -Script $test.fullname            }        }          }    else    {        $tests    }}
+{[CmdletBinding()]Param(    [string]$Testkeyword = "Tests"    ,    [switch]$Grid)    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse    if($Grid -and (Get-Command -Name Out-GridView))    {        $Selected = $tests | Sort-Object -Property LastWriteTime -Descending | Out-GridView -Title "Tests available" -PassThru        $invoke = $null        if($Selected -eq "y")        {            $invoke = Read-Host -Prompt "Invoke selected test(s)? Y/(N)"            if(-not (Get-Module -Name pester))            {                Import-Module Pester            }            foreach($test in $Selected)            {                Invoke-Pester -Script $test.fullname            }        }          }    else    {        $tests    }}
 
 function Update-ScriptLine
 {
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess=$true)]
 Param(
     [Parameter(ValueFromPipeline=$true)]
     [Alias("Path","PSpath")]
@@ -68,7 +111,11 @@ PROCESS
         Write-Verbose -Message "$f -  '$SearchFor' was replaced with '$ReplaceWith' $ReplaceCount time(s)"
 
         Write-Verbose -Message "$f -  Saving file '$($file.Name)'"
-        Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
+        if ($cmdlet.ShouldProcess("Saving content",$file))
+        {
+            Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
+        }
+        #Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
     }
 }
 
@@ -78,6 +125,4 @@ END
 }
 }
 
-New-Alias -Name Test -Value Invoke-test
-New-Alias -Name Edit -Value Edit-Test
-Export-ModuleMember -Function * -Alias *
+

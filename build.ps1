@@ -9,7 +9,8 @@ Param(
     ,
     [switch]$LoadModule
 )
-cd C:\Users\Tore\Dropbox\SourceTreeRepros\PesterHelper -ErrorAction SilentlyContinue
+Set-Location -path "C:\Users\Tore\Dropbox\SourceTreeRepros\$ModuleName" -ErrorAction SilentlyContinue
+
 $F = $MyInvocation.InvocationName
 
 $ModuleFileName = "$ModuleName.psm1"
@@ -24,7 +25,7 @@ if(Get-Module -Name $ModuleName)
     Remove-Module $ModuleName -Verbose:$false -ErrorAction SilentlyContinue
 }
     
-$fileList = Get-ChildItem -Filter ".\functions\*.ps1" | where name -NotLike "*Tests*"
+$fileList = Get-ChildItem -Filter ".\functions\*.ps1" | Where-Object name -NotLike "*Tests*"
 
 $ScriptVariables = Get-Content -Path "$PSScriptRoot\ScriptVariables.ps1" -ErrorAction SilentlyContinue
 
@@ -35,9 +36,9 @@ Write-Verbose -Message "$f -  Modulename is $ModuleName"
 
 $ExportedFunctions = New-Object System.Collections.ArrayList
 
-$fileList | foreach {
+$fileList | ForEach-Object {
     Write-Verbose -Message "$F -  Function = $($_.BaseName) added"
-    [void]$ExportedFunctions.Add($_.BaseName)
+    $null = $ExportedFunctions.Add($_.BaseName)
 }
 
 $ModuleLevelFunctions = $null
@@ -60,7 +61,7 @@ Write-Verbose -Message "$f -  Constructing content of module file"
 [string]$ModuleFile = ""
 foreach($file in $fileList)
 {
-    $filecontent = Get-Content -Path $file.FullName -raw
+    $filecontent = Get-Content -Path $file.FullName -Raw
     $filecontent = "$filecontent`n`n"
     $ModuleFile += $filecontent
 }
@@ -68,7 +69,7 @@ foreach($file in $fileList)
 if($ScriptVariables)
 {
     Write-Verbose -Message "$f -  Inserting Scriptlevel variables"
-    $ScriptVariables = $ScriptVariables | foreach {"$_`n"}
+    $ScriptVariables = $ScriptVariables | ForEach-Object {"$_`n"}
     $ModuleFile = "$ScriptVariables$ModuleFile"
 }
 else
@@ -79,7 +80,7 @@ else
 if($alias)
 {
     Write-Verbose -Message "$f -  Inserting alias"
-    $ModuleFile += $alias | foreach{"$_`n"}
+    $ModuleFile += $alias | ForEach-Object {"$_`n"}
     $ModuleFile += "Export-ModuleMember -Function * -Alias *"
 }
 else

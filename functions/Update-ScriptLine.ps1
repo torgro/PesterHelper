@@ -1,6 +1,6 @@
 ﻿function Update-ScriptLine
 {
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess=$true)]
 Param(
     [Parameter(ValueFromPipeline=$true)]
     [Alias("Path","PSpath")]
@@ -37,10 +37,14 @@ PROCESS
 
         $SearchForMatch = $content | Select-String -Pattern "$escapedSearchFor" -AllMatches
         $ReplaceCount = $SearchForMatch.Matches.Count
-        Write-Verbose -Message "$f -  '$SearchFor' was replaced with '$ReplaceWith' $ReplaceCount time(s)"
-
-        Write-Verbose -Message "$f -  Saving file '$($file.Name)'"
-        Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
+        Write-Verbose -Message "$f -  '$SearchFor' was replaced with '$ReplaceWith' $ReplaceCount time(s) in file $file.Name"
+        
+        if ($cmdlet.ShouldProcess($file, "Saving content"))
+        {
+            Write-Verbose -Message "$f -  Saving file '$($file.Name)'"
+            Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
+        }
+        #Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
     }
 }
 
