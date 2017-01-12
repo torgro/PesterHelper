@@ -1,4 +1,5 @@
-﻿function Invoke-Test
+﻿#Requires -Version 4.0 -Modules Pester
+function Invoke-Test
 {
 [cmdletbinding()]
 Param(
@@ -6,12 +7,6 @@ Param(
 )
     $f = $MyInvocation.InvocationName
     Write-Verbose -Message "$f - START"
-    
-    if(-not (Get-Module -Name pester))
-    {
-        Write-Verbose -Message "$f -  Importing module Pester"
-        Import-Module -Name Pester -ErrorAction Stop
-    }
 
     if($id.Count -eq 0)
     {
@@ -28,16 +23,18 @@ Param(
         Foreach($test in $Alltests)
         {
             $testItem = Invoke-Pester -Script $test.fullname -PassThru
-            $TestObj = "" | Select-Object ID, TotalCount, PassedCount, FailedCount, SkippedCount, Time, Describe
-            $TestObj.id = $test.id
-            $TestObj.TotalCount = $testItem.TotalCount
-            $TestObj.PassedCount = $testItem.PassedCount
-            $TestObj.FailedCount = $testItem.FailedCount
-            $TestObj.SkippedCount = $testItem.SkippedCount
-            $TestObj.Time = $testItem.Time
-            $TestObj.Describe = $testItem.TestResult[0].Describe
+            $testObj = [PSCustomObject]@{
+                ID = $test.id
+                TotalCount = $testItem.TotalCount
+                PassedCount = $testItem.PassedCount
+                FailedCount = $testItem.FailedCount
+                SkippedCount = $testItem.SkippedCount
+                Time = (Get-Date).ToLongTimeString()
+                Describe = $testItem.TestResult[0].Describe
+            }
+            
             Write-Verbose -Message "$f -  Adding test resulsts to array with id $($test.id)"
-            [void]$script:TestResults.add($TestObj)
+            $null = $script:TestResults.add($TestObj)
         }
     }
     else

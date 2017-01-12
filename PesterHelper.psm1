@@ -1,5 +1,5 @@
-﻿$script:TestFiles = $null
- $script:TestResults = New-Object System.Collections.ArrayList
+﻿$script:TestFiles = @()
+ $script:TestResults = New-Object -TypeName System.Collections.ArrayList
 function Edit-Test
 {
 [cmdletbinding()]
@@ -59,6 +59,42 @@ Param(
     }
 }
 
+function Get-CommandParmeterHash
+{
+[cmdletbinding()]
+Param(
+    [Parameter(ValueFromPipeline)]
+    [string]$Name
+)
+begin
+{
+    $f = $MyInvocation.InvocationName
+    Write-Verbose -Message "$f - START"
+}
+Process
+{
+    Write-Verbose "$f -  Getting command [$Name]"
+    $cmdlet = Get-Command -Name $Name -ErrorAction SilentlyContinue
+    $params = @{}
+    $newLine = [environment]::NewLine
+    $cmd = '$parm = @{' + $newLine
+    $pre = "    "
+    foreach ($key in $cmdlet.Parameters.Keys)
+    {
+        if ($key -notin [System.Management.Automation.Cmdlet]::CommonParameters)
+        {
+            $cmd += $pre + $key + " = ''" + $newLine
+        }
+    }
+    $cmd += "}"
+    
+    if ($cmdlet)
+    {
+        $cmd
+    }    
+}
+}
+
 function Get-TestList
 {
 [CmdletBinding()]
@@ -72,29 +108,32 @@ Param(
     $allTests = New-Object System.Collections.ArrayList
 
     [int]$i = 0
-    foreach($testFile in (Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse))
+    foreach ($testFile in (Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse))
     {
         $item = "" | Select-Object -Property ID, TestFileName, FunctionName, FullName
-        $item.ID = $i
-        $item.TestFileName = $testFile.Name
-        $item.FunctionName = $testFile.Name.Replace(".$Testkeyword","")
-        $item.FullName = (Resolve-Path -Path $testFile.FullName).Path
-        $null = $allTests.Add($item)
+        $item = [PScustomobject]@{
+            ID = $i
+            TestFileName = $testFile.Name
+            FunctionName = $testFile.Name.Replace(".$Testkeyword","")
+            FullName = (Resolve-Path -Path $testFile.FullName).Path
+        }
+        $null = $allTests.Add($item)       
         $i += 1
     }
 
-    if($Id -ge 0 -or $id -is [array])
+    if ($Id -ge 0 -or $id -is [array])
     {
-        $allTests | where id -in $id
+        $allTests | Where-Object id -in $id
     }
     else
     {       
-        $allTests | where TestFileName -like "$Name"
+        $allTests | Where-Object TestFileName -like "$Name"
     }
 }
 
 function Get-TestResult{[CmdletBinding()]Param(    [int[]]$Id)    $f = $MyInvocation.InvocationName    Write-Verbose -Message "$f - START"    if(-not $Id)    {        Write-Verbose -Message "$f -  Returning all results"        return $script:TestResults        break    }    Write-Verbose -Message "$f -  Getting results for specific id's"    foreach($index in $id)    {        $script:TestResults[$index]    }}
 
+#Requires -Version 4.0 -Modules Pester
 function Invoke-Test
 {
 [cmdletbinding()]
@@ -103,12 +142,6 @@ Param(
 )
     $f = $MyInvocation.InvocationName
     Write-Verbose -Message "$f - START"
-    
-    if(-not (Get-Module -Name pester))
-    {
-        Write-Verbose -Message "$f -  Importing module Pester"
-        Import-Module -Name Pester -ErrorAction Stop
-    }
 
     if($id.Count -eq 0)
     {
@@ -125,16 +158,18 @@ Param(
         Foreach($test in $Alltests)
         {
             $testItem = Invoke-Pester -Script $test.fullname -PassThru
-            $TestObj = "" | Select-Object ID, TotalCount, PassedCount, FailedCount, SkippedCount, Time, Describe
-            $TestObj.id = $test.id
-            $TestObj.TotalCount = $testItem.TotalCount
-            $TestObj.PassedCount = $testItem.PassedCount
-            $TestObj.FailedCount = $testItem.FailedCount
-            $TestObj.SkippedCount = $testItem.SkippedCount
-            $TestObj.Time = $testItem.Time
-            $TestObj.Describe = $testItem.TestResult[0].Describe
+            $testObj = [PSCustomObject]@{
+                ID = $test.id
+                TotalCount = $testItem.TotalCount
+                PassedCount = $testItem.PassedCount
+                FailedCount = $testItem.FailedCount
+                SkippedCount = $testItem.SkippedCount
+                Time = (Get-Date).ToLongTimeString()
+                Describe = $testItem.TestResult[0].Describe
+            }
+            
             Write-Verbose -Message "$f -  Adding test resulsts to array with id $($test.id)"
-            [void]$script:TestResults.add($TestObj)
+            $null = $script:TestResults.add($TestObj)
         }
     }
     else
@@ -143,6 +178,171 @@ Param(
     }
 }
 
+#Requires -Version 4.0 -Modules Pester
+function New-Function {
+
+<#
+.SYNOPSIS
+    Creates a new PowerShell function in the specified location.
+ 
+.DESCRIPTION
+    New-Function is an advanced function that creates a new PowerShell function in the
+    specified location including creating a Pester test for the new function.
+ 
+.PARAMETER Name
+    Name of the function.
+
+.PARAMETER Path
+    Path of the location where to create the function. This location must already exist.
+ 
+.EXAMPLE
+     New-Function -Name Get-PSVersion -Path "$env:ProgramFiles\WindowsPowerShell\Modules\MyModule"
+
+.INPUTS
+    None
+ 
+.OUTPUTS
+    System.IO.FileInfo
+ 
+.NOTES
+    Author:  Mike F Robbins
+    Website: http://mikefrobbins.com
+    Twitter: @mikefrobbins
+#>
+
+    [CmdletBinding()]
+    [OutputType('System.IO.FileInfo')]
+    param (
+        [ValidateScript({
+          If ((Get-Verb -Verb ($_ -replace '-.*$')).Verb) {
+            $true
+          }
+          else {
+            Throw "'$_' does NOT use an approved Verb."
+          }
+        })]
+        [string]$Name
+        ,        
+        [string]$Path
+    )
+    $currentPath = (Get-Location).Path
+
+    if (-not $Path)
+    {
+        $Path = $currentPath
+    }
+    
+    $FunctionPath = Join-Path -Path $Path -ChildPath "Functions"
+
+    Write-Verbose -Message "$f -  Functionpath = [$FunctionPath]"
+
+    if (Test-Path -Path $FunctionPath) 
+    {
+        $FunctionPath = Join-Path -Path $FunctionPath -ChildPath "$Name.ps1"        
+    }
+    else 
+    {
+        $FunctionPath = Join-Path -Path $Path -ChildPath "$Name.ps1"
+    }
+
+    $testsPath = Join-Path -Path $Path -ChildPath "Tests"
+
+    if (Test-Path -Path $testsPath)
+    {
+        $testsPath = Join-Path -Path $testsPath -ChildPath "$name.Tests.ps1"
+    }
+    else 
+    {
+        $testsPath = Join-Path -Path $Path -ChildPath "$name.Tests.ps1"
+    }
+
+    Write-Verbose -Message "$f -  Function path is [$FunctionPath]"
+    Write-Verbose -Message "$f -  TestPath path is [$testsPath]"
+    
+    if (-not(Test-Path -Path $FunctionPath)) 
+    {    
+        Out-File -FilePath $testsPath -Encoding utf8
+        Set-Content -Path $FunctionPath -Value @"
+#Requires -Version 4.0
+function $($Name)
+{
+<#
+.SYNOPSIS
+    Brief synopsis about the function.
+ 
+.DESCRIPTION
+    Detailed explanation of the purpose of this function.
+ 
+.PARAMETER Param1
+    The purpose of param1.
+
+.PARAMETER Param2
+    The purpose of param2.
+ 
+.EXAMPLE
+     $($Name) -Param1 'Value1', 'Value2'
+
+.EXAMPLE
+     'Value1', 'Value2' | $($Name)
+
+.EXAMPLE
+     $($Name) -Param1 'Value1', 'Value2' -Param2 'Value'
+ 
+.INPUTS
+    String
+ 
+.OUTPUTS
+    PSCustomObject
+ 
+.NOTES
+    Author:  Tore Groneng
+    Website: www.firstpoint.no
+    Twitter: @ToreGroneng
+#>
+    [CmdletBinding()]
+    [OutputType('PSCustomObject')]
+    param (
+        [Parameter(
+            Mandatory, 
+            ValueFromPipeline)]
+        [string[]]`$Param1
+        ,
+        [ValidateNotNullOrEmpty()]
+        [string]`$Param2
+    )
+
+    BEGIN 
+    {
+        `$f = $MyInvokation.InvokationName
+        Write-Verbose -Message "`$f - START"
+    }
+
+    PROCESS 
+    {       
+        foreach (`$Param in `$Param1) 
+        {
+            
+        }
+    }
+
+    END 
+    {
+        Write-Verbose -Message "`$f - START"
+    }
+
+}
+"@
+    
+    }
+    else 
+    {
+        Write-Error -Message 'Unable to create function. Specified file already exists!'
+    }    
+    
+    Get-ChildItem -File -Path $FunctionPath, $testsPath 
+}
+
+#Requires -Version 4.0 -Modules Pester
 function Show-Test
 {
 [CmdletBinding()]
@@ -151,7 +351,7 @@ Param(
     ,
     [switch]$Grid
 )
-    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse
+    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse -File
 
     if($Grid -and (Get-Command -Name Out-GridView))
     {
@@ -198,7 +398,7 @@ BEGIN
     $f = $MyInvocation.InvocationName
     Write-Verbose -Message "$f - START"
 
-    if(-not ($SearchFor) -or -not($ReplaceWith))
+    if (-not ($SearchFor) -or -not($ReplaceWith))
     {
         Write-Verbose -Message "$f -  Nothing to do"
     }
@@ -206,9 +406,9 @@ BEGIN
 
 PROCESS
 {
-    foreach($file in $files)
+    foreach ($file in $files)
     {
-        if($file.PSIsContainer -eq $true)
+        if ($file.PSIsContainer -eq $true)
         {
             Write-Verbose -Message "$f -  item is directory, skipping"
             continue
@@ -226,8 +426,7 @@ PROCESS
         {
             Write-Verbose -Message "$f -  Saving file '$($file.Name)'"
             Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
-        }
-        #Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
+        }        
     }
 }
 

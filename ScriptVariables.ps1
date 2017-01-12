@@ -1,2 +1,2 @@
-﻿$script:TestFiles = $null
-$script:TestResults = New-Object System.Collections.ArrayList
+﻿$script:TestFiles = @()
+$script:TestResults = New-Object -TypeName System.Collections.ArrayList

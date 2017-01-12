@@ -1,4 +1,5 @@
-﻿function Show-Test
+﻿#Requires -Version 4.0 -Modules Pester
+function Show-Test
 {
 [CmdletBinding()]
 Param(
@@ -6,7 +7,7 @@ Param(
     ,
     [switch]$Grid
 )
-    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse
+    $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse -File
 
     if($Grid -and (Get-Command -Name Out-GridView))
     {

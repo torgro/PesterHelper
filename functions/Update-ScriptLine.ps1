@@ -15,7 +15,7 @@ BEGIN
     $f = $MyInvocation.InvocationName
     Write-Verbose -Message "$f - START"
 
-    if(-not ($SearchFor) -or -not($ReplaceWith))
+    if (-not ($SearchFor) -or -not($ReplaceWith))
     {
         Write-Verbose -Message "$f -  Nothing to do"
     }
@@ -23,9 +23,9 @@ BEGIN
 
 PROCESS
 {
-    foreach($file in $files)
+    foreach ($file in $files)
     {
-        if($file.PSIsContainer -eq $true)
+        if ($file.PSIsContainer -eq $true)
         {
             Write-Verbose -Message "$f -  item is directory, skipping"
             continue
@@ -43,8 +43,7 @@ PROCESS
         {
             Write-Verbose -Message "$f -  Saving file '$($file.Name)'"
             Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
-        }
-        #Set-Content -Path (Resolve-Path -Path $file.FullName).Path -Value $NewContent -Encoding UTF8
+        }        
     }
 }
 
