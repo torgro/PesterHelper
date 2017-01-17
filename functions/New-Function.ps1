@@ -133,7 +133,7 @@ function $($Name)
 
     BEGIN 
     {
-        `$f = $MyInvokation.InvokationName
+        `$f = `$MyInvocation.InvocationName
         Write-Verbose -Message "`$f - START"
     }
 

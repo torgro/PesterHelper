@@ -313,7 +313,7 @@ function $($Name)
 
     BEGIN 
     {
-        `$f = $MyInvokation.InvokationName
+        `$f = `$MyInvocation.InvocationName
         Write-Verbose -Message "`$f - START"
     }
 
@@ -352,7 +352,7 @@ Param(
     [switch]$Grid
 )
     $tests = Get-ChildItem -Filter "*$Testkeyword.ps1" -Recurse -File
-
+    $f = $MyInvocation.InvocationName
     if($Grid -and (Get-Command -Name Out-GridView))
     {
         $Selected = $tests | Sort-Object -Property LastWriteTime -Descending | Out-GridView -Title "Tests available" -PassThru
@@ -372,13 +372,29 @@ Param(
             {
                 Invoke-Pester -Script $test.fullname
             }
-        }      
+        }              
     }
     else
     {
         $tests
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
 
 
 function Update-ScriptLine
