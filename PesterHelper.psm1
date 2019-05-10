@@ -327,7 +327,7 @@ function $($Name)
 
     END 
     {
-        Write-Verbose -Message "`$f - START"
+        Write-Verbose -Message "`$f - END"
     }
 
 }
@@ -358,20 +358,17 @@ Param(
         $Selected = $tests | Sort-Object -Property LastWriteTime -Descending | Out-GridView -Title "Tests available" -PassThru
         $invoke = $null
 
-        if($Selected -eq "y")
+        if($Selected)
         {
             $invoke = Read-Host -Prompt "Invoke selected test(s)? Y/(N)"
 
-            if(-not (Get-Module -Name pester))
+            if ($invoke -eq "Y")
             {
-                Write-Verbose -Message "$f -  Importing module Pester"
-                Import-Module -Name Pester -ErrorAction Stop
-            }
-
-            foreach($test in $Selected)
-            {
-                Invoke-Pester -Script $test.fullname
-            }
+                foreach($test in $Selected)
+                {
+                    Invoke-Pester -Script $test.fullname
+                }
+            }            
         }              
     }
     else
@@ -454,4 +451,5 @@ END
 
 New-Alias -Name Test -Value Invoke-test
 New-Alias -Name Edit -Value Edit-Test
+New-Alias -Name Tests -Value Get-TestList
 Export-ModuleMember -Function * -Alias *

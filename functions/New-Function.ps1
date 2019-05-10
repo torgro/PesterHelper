@@ -147,7 +147,7 @@ function $($Name)
 
     END 
     {
-        Write-Verbose -Message "`$f - START"
+        Write-Verbose -Message "`$f - END"
     }
 
 }

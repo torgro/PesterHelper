@@ -14,20 +14,17 @@ Param(
         $Selected = $tests | Sort-Object -Property LastWriteTime -Descending | Out-GridView -Title "Tests available" -PassThru
         $invoke = $null
 
-        if($Selected -eq "y")
+        if($Selected)
         {
             $invoke = Read-Host -Prompt "Invoke selected test(s)? Y/(N)"
 
-            if(-not (Get-Module -Name pester))
+            if ($invoke -eq "Y")
             {
-                Write-Verbose -Message "$f -  Importing module Pester"
-                Import-Module -Name Pester -ErrorAction Stop
-            }
-
-            foreach($test in $Selected)
-            {
-                Invoke-Pester -Script $test.fullname
-            }
+                foreach($test in $Selected)
+                {
+                    Invoke-Pester -Script $test.fullname
+                }
+            }            
         }              
     }
     else
